@@ -19,6 +19,12 @@ pnpm dev
 
 Open http://localhost:5173. The Vite dev server forwards `/api` to the Express server on http://localhost:4000. `GET /api/health` returns `{ status, database, checkedAt }` (503 while the database is down).
 
+## One process
+
+`pnpm build` then `pnpm start` serves the built SPA (`client/dist`) and the API from the same Node process on port 4000. `GET /` returns the app HTML. Client routes fall back to that HTML. `/api` routes stay ahead of the fallback, so `GET /api/health` still returns JSON.
+
+Set `MONGODB_URI`, `JWT_SECRET`, and `BCRYPT_ROUNDS` (bcrypt cost, default 12, minimum 10). Local MongoDB comes from `compose.yml`. No paid service is required.
+
 ## Commands
 
 | Command | What it does |
