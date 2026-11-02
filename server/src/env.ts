@@ -7,6 +7,11 @@ const schema = z.object({
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   CLIENT_ORIGIN: z.string().default("http://localhost:5173"),
+  BCRYPT_ROUNDS: z.coerce.number().int().min(10, "BCRYPT_ROUNDS must be at least 10").default(12),
 });
 
-export const env = schema.parse(process.env);
+export function readEnv(source: NodeJS.ProcessEnv = process.env) {
+  return schema.parse(source);
+}
+
+export const env = readEnv();
