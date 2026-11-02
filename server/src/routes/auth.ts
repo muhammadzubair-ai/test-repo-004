@@ -13,7 +13,10 @@ const Register = z.object({
   email: z.email(),
   password: z.string().min(8).max(200),
 });
-const Login = z.object({ email: z.email(), password: z.string().min(1) });
+const Login = z.object({
+  identifier: z.string().trim().min(1).max(320),
+  password: z.string().min(1).max(200),
+});
 
 authRouter.post("/register", async (req, res) => {
   const input = Register.parse(req.body);
@@ -24,10 +27,15 @@ authRouter.post("/register", async (req, res) => {
 
 authRouter.post("/login", async (req, res) => {
   const input = Login.parse(req.body);
-  const user = await User.findOne({ email: input.email.toLowerCase() }).select("+passwordHash");
-  // The same message for an unknown email and a wrong password, so the route does not reveal which emails exist.
-  if (!user || !(await verifyPassword(input.password, user.passwordHash))) throw new HttpError(401, "Wrong email or password");
-  res.json({ token: await signToken(user.id), user: toPublicUser(user) });
+  const identifier = input.identifier;
+  const byEmail = await User.findOne({ email: identifier.toLowerCase() }).select("+passwordHash");
+  const user = byEmail ?? (await User.findOne({ username: identifier }).select("+passwordHash"));
+  // Unknown identifier and wrong password share one response so the route does not reveal which accounts exist.
+  if (!user || !(await verifyPassword(input.password, user.passwordHash))) throw new HttpError(401, "INVALID_CREDENTIALS");
+  res.json({
+    token: await signToken(user.id),
+    user: { id: user.id as string, username: user.username ?? null, email: user.email },
+  });
 });
 
 authRouter.get("/me", requireAuth, async (_req, res) => {
