@@ -1,4 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { hashPassword } from "../src/lib/password.js";
+import { verifyToken } from "../src/lib/token.js";
+import { User } from "../src/models/user.js";
 import { startTestServer } from "./helpers.js";
 
 let api: Awaited<ReturnType<typeof startTestServer>>;
@@ -27,15 +30,41 @@ describe("auth", () => {
     expect(res.status).toBe(400);
   });
 
-  it("logs in with the right password and refuses the wrong one", async () => {
-    const ok = await api.call("/api/auth/login", { body: { email: "ada@example.com", password: ada.password } });
+  it("logs in with an email identifier and returns the user and a JWT", async () => {
+    const ok = await api.call("/api/auth/login", { body: { identifier: "Ada@Example.com", password: ada.password } });
     expect(ok.status).toBe(200);
-    const bad = await api.call("/api/auth/login", { body: { email: "ada@example.com", password: "wrong password" } });
-    expect(bad.status).toBe(401);
+    expect(ok.body.token).toEqual(expect.any(String));
+    expect(ok.body.user).toEqual({ id: expect.any(String), username: null, email: "ada@example.com" });
+    expect(await verifyToken(ok.body.token)).toBe(ok.body.user.id);
+  });
+
+  it("logs in with a username identifier and returns a JWT", async () => {
+    await User.create({
+      name: "Grace",
+      username: "grace",
+      email: "grace@example.com",
+      passwordHash: await hashPassword(ada.password),
+    });
+    const ok = await api.call("/api/auth/login", { body: { identifier: "grace", password: ada.password } });
+    expect(ok.status).toBe(200);
+    expect(ok.body.token).toEqual(expect.any(String));
+    expect(ok.body.user).toMatchObject({ username: "grace", email: "grace@example.com" });
+    expect(await verifyToken(ok.body.token)).toBe(ok.body.user.id);
+  });
+
+  it("returns the same 401 INVALID_CREDENTIALS for an unknown identifier and a wrong password", async () => {
+    const unknown = await api.call("/api/auth/login", { body: { identifier: "missing@example.com", password: ada.password } });
+    const wrongEmail = await api.call("/api/auth/login", { body: { identifier: "ada@example.com", password: "wrong password" } });
+    const wrongUsername = await api.call("/api/auth/login", { body: { identifier: "grace", password: "wrong password" } });
+    const unknownName = await api.call("/api/auth/login", { body: { identifier: "nobody", password: "wrong password" } });
+    expect(unknown).toEqual({ status: 401, body: { error: "INVALID_CREDENTIALS" } });
+    expect(wrongEmail).toEqual(unknown);
+    expect(wrongUsername).toEqual(unknown);
+    expect(unknownName).toEqual(unknown);
   });
 
   it("returns the signed-in user from /me and refuses a missing or bad token", async () => {
-    const { body } = await api.call("/api/auth/login", { body: { email: "ada@example.com", password: ada.password } });
+    const { body } = await api.call("/api/auth/login", { body: { identifier: "ada@example.com", password: ada.password } });
     const me = await api.call("/api/auth/me", { token: body.token });
     expect(me.body.user.email).toBe("ada@example.com");
     expect((await api.call("/api/auth/me")).status).toBe(401);
