@@ -1,0 +1,26 @@
+{
+  "name": "memo-app",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.28.6",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @app/server --filter @app/client dev",
+    "build": "pnpm --filter \"@app/*\" build",
+    "start": "pnpm --filter @app/server start",
+    "lint": "eslint",
+    "typecheck": "pnpm --filter \"@app/*\" typecheck",
+    "test": "pnpm --filter \"@app/*\" test",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "typescript-eslint": "^8.72.1"
+  }
+}
