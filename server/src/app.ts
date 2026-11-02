@@ -8,6 +8,7 @@ import { errorHandler, notFound } from "./middleware/error.js";
 import { authRouter } from "./routes/auth.js";
 import { healthRouter } from "./routes/health.js";
 import { notesRouter } from "./routes/notes.js";
+import { usersRouter } from "./routes/users.js";
 
 const clientDist = fileURLToPath(new URL("../../client/dist", import.meta.url));
 
@@ -19,6 +20,7 @@ export function createApp() {
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/notes", notesRouter);
+  app.use("/api/users", usersRouter);
   app.use(express.static(clientDist));
   app.use((req, res, next) => {
     if (req.method !== "GET" && req.method !== "HEAD") return next();
